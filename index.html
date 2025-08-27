@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario Sencillo</title>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c53030;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .edit-btn {
+            background: #38a169;
+            color: white;
+        }
+        
+        .delete-btn {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .alert-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #feb2b2;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 14px;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏪 Sistema de Inventario Sencillo</h1>
+            <p>Gestión de productos usando SQLite en el navegador</p>
+        </header>
+
+        <div class="alert" id="alertBox"></div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('dashboard')">📊 Dashboard</button>
+            <button class="tab-btn" onclick="openTab('productos')">📦 Productos</button>
+            <button class="tab-btn" onclick="openTab('agregar')">➕ Agregar Producto</button>
+            <button class="tab-btn" onclick="openTab('backup')">💾 Backup</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="tab-content active">
+            <h2>Estadísticas del Inventario</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Productos</div>
+                    <div class="stat-number" id="totalProductos">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Valor Total</div>
+                    <div class="stat-number" id="valorTotal">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Stock Bajo</div>
+                    <div class="stat-number" id="stockBajo">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Productos -->
+        <div id="productos" class="tab-content">
+            <h2>Lista de Productos</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Categoría</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productosTable">
+                        <!-- Los productos se cargarán aquí -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Agregar Producto -->
+        <div id="agregar" class="tab-content">
+            <h2>Agregar Nuevo Producto</h2>
+            <form id="productoForm">
+                <div class="form-group">
+                    <label for="nombre">Nombre del Producto:</label>
+                    <input type="text" id="nombre" name="nombre" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="descripcion">Descripción:</label>
+                    <textarea id="descripcion" name="descripcion" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="precio">Precio ($):</label>
+                    <input type="number" id="precio" name="precio" step="0.01" min="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="stock">Stock:</label>
+                    <input type="number" id="stock" name="stock" min="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="categoria">Categoría:</label>
+                    <select id="categoria" name="categoria" required>
+                        <option value="">Seleccionar categoría</option>
+                        <option value="Alimentos">Alimentos</option>
+                        <option value="Bebidas">Bebidas</option>
+                        <option value="Limpieza">Limpieza</option>
+                        <option value="Electrónicos">Electrónicos</option>
+                        <option value="Ropa">Ropa</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Agregar Producto</button>
+            </form>
+        </div>
+
+        <!-- Backup -->
+        <div id="backup" class="tab-content">
+            <h2>Respaldo de Datos</h2>
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="exportData()">📥 Exportar Datos</button>
+                <button class="btn btn-danger" onclick="importData()" style="margin-left: 10px;">📤 Importar Datos</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="backupData">Datos de Respaldo:</label>
+                <textarea id="backupData" rows="6" placeholder="Pega aquí los datos de respaldo..." style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;"></textarea>
+            </div>
+            
+            <button class="btn btn-primary" onclick="restoreData()">🔄 Restaurar desde Respaldo</button>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let db = null;
+        let SQL = null;
+
+        // Inicializar la base de datos
+        async function initDatabase() {
+            try {
+                // Cargar SQL.js
+                SQL = await initSqlJs({
+                    locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
+                });
+
+                // Intentar cargar base de datos existente desde localStorage
+                const dbData = localStorage.getItem('inventory_db');
+                
+                if (dbData) {
+                    // Cargar base de datos existente
+                    const buffer = Uint8Array.from(JSON.parse(dbData)).buffer;
+                    db = new SQL.Database(new Uint8Array(buffer));
+                } else {
+                    // Crear nueva base de datos
+                    db = new SQL.Database();
+                    createTables();
+                }
+
+                console.log('Base de datos inicializada correctamente');
+                loadData();
+                
+            } catch (error) {
+                console.error('Error inicializando la base de datos:', error);
+                showAlert('Error al inicializar la base de datos', 'error');
+            }
+        }
+
+        // Crear tablas si no existen
+        function createTables() {
+            // Tabla de productos
+            db.run(`
+                CREATE TABLE productos (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nombre TEXT NOT NULL,
+                    descripcion TEXT,
+                    precio REAL NOT NULL,
+                    stock INTEGER NOT NULL,
+                    categoria TEXT NOT NULL,
+                    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Insertar algunos datos de ejemplo
+            db.run(`INSERT INTO productos (nombre, descripcion, precio, stock, categoria) 
+                   VALUES ('Arroz 1kg', 'Arroz blanco de buena calidad', 15.50, 100, 'Alimentos')`);
+            
+            db.run(`INSERT INTO productos (nombre, descripcion, precio, stock, categoria) 
+                   VALUES ('Aceite 1L', 'Aceite vegetal', 25.00, 50, 'Alimentos')`);
+            
+            db.run(`INSERT INTO productos (nombre, descripcion, precio, stock, categoria) 
+                   VALUES ('Leche 1L', 'Leche entera pasteurizada', 22.50, 30, 'Bebidas')`);
+
+            saveDatabase();
+        }
+
+        // Guardar base de datos en localStorage
+        function saveDatabase() {
+            if (db) {
+                const data = db.export();
+                const array = Array.from(new Uint8Array(data));
+                localStorage.setItem('inventory_db', JSON.stringify(array));
+            }
+        }
+
+        // Cargar datos y mostrar en la interfaz
+        function loadData() {
+            loadProductos();
+            updateStats();
+        }
+
+        // Cargar productos en la tabla
+        function loadProductos() {
+            if (!db) return;
+
+            const result = db.exec("SELECT * FROM productos ORDER BY nombre");
+            if (result.length === 0) return;
+
+            const productos = result[0].values;
+            const columns = result[0].columns;
+            
+            const tableBody = document.getElementById('productosTable');
+            tableBody.innerHTML = '';
+
+            productos.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                // Mapear columnas a valores
+                const producto = {};
+                columns.forEach((col, index) => {
+                    producto[col] = row[index];
+                });
+
+                tr.innerHTML = `
+                    <td>${producto.id}</td>
+                    <td>${producto.nombre}</td>
+                    <td>$${producto.precio.toFixed(2)}</td>
+                    <td>${producto.stock}</td>
+                    <td>${producto.categoria}</td>
+                    <td class="actions">
+                        <button class="action-btn edit-btn" onclick="editarProducto(${producto.id})">✏️ Editar</button>
+                        <button class="action-btn delete-btn" onclick="eliminarProducto(${producto.id})">🗑️ Eliminar</button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            if (!db) return;
+
+            // Total productos
+            const totalResult = db.exec("SELECT COUNT(*) as total FROM productos");
+            const total = totalResult.length > 0 ? totalResult[0].values[0][0] : 0;
+            document.getElementById('totalProductos').textContent = total;
+
+            // Valor total
+            const valorResult = db.exec("SELECT SUM(precio * stock) as valor FROM productos");
+            const valor = valorResult.length > 0 ? valorResult[0].values[0][0] : 0;
+            document.getElementById('valorTotal').textContent = `$${valor ? valor.toFixed(2) : '0.00'}`;
+
+            // Stock bajo (menos de 10 unidades)
+            const stockResult = db.exec("SELECT COUNT(*) as bajo FROM productos WHERE stock < 10");
+            const stockBajo = stockResult.length > 0 ? stockResult[0].values[0][0] : 0;
+            document.getElementById('stockBajo').textContent = stockBajo;
+        }
+
+        // Agregar nuevo producto
+        function agregarProducto(event) {
+            event.preventDefault();
+            
+            if (!db) {
+                showAlert('Base de datos no inicializada', 'error');
+                return;
+            }
+
+            const nombre = document.getElementById('nombre').value;
+            const descripcion = document.getElementById('descripcion').value;
+            const precio = parseFloat(document.getElementById('precio').value);
+            const stock = parseInt(document.getElementById('stock').value);
+            const categoria = document.getElementById('categoria').value;
+
+            if (!nombre || !precio || !stock || !categoria) {
+                showAlert('Por favor complete todos los campos obligatorios', 'error');
+                return;
+            }
+
+            try {
+                db.run(
+                    "INSERT INTO productos (nombre, descripcion, precio, stock, categoria) VALUES (?, ?, ?, ?, ?)",
+                    [nombre, descripcion, precio, stock, categoria]
+                );
+
+                saveDatabase();
+                loadData();
+                
+                // Limpiar formulario
+                document.getElementById('productoForm').reset();
+                
+                showAlert('Producto agregado correctamente', 'success');
+                openTab('productos');
+                
+            } catch (error) {
+                console.error('Error agregando producto:', error);
+                showAlert('Error al agregar el producto', 'error');
+            }
+        }
+
+        // Eliminar producto
+        function eliminarProducto(id) {
+            if (confirm('¿Está seguro de que desea eliminar este producto?')) {
+                try {
+                    db.run("DELETE FROM productos WHERE id = ?", [id]);
+                    saveDatabase();
+                    loadData();
+                    showAlert('Producto eliminado correctamente', 'success');
+                } catch (error) {
+                    console.error('Error eliminando producto:', error);
+                    showAlert('Error al eliminar el producto', 'error');
+                }
+            }
+        }
+
+        // Editar producto (placeholder)
+        function editarProducto(id) {
+            showAlert('Función de edición en desarrollo', 'success');
+            // Implementar lógica de edición aquí
+        }
+
+        // Exportar datos
+        function exportData() {
+            if (!db) return;
+
+            const data = db.export();
+            const array = Array.from(new Uint8Array(data));
+            const jsonData = JSON.stringify(array);
+            
+            // Crear blob para descargar
+            const blob = new Blob([jsonData], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'inventory_backup.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            showAlert('Datos exportados correctamente', 'success');
+        }
+
+        // Importar datos
+        function importData() {
+            document.getElementById('backupData').value = '';
+            openTab('backup');
+        }
+
+        // Restaurar datos desde respaldo
+        function restoreData() {
+            const backupData = document.getElementById('backupData').value;
+            
+            if (!backupData) {
+                showAlert('Por favor pegue los datos de respaldo', 'error');
+                return;
+            }
+
+            try {
+                const array = JSON.parse(backupData);
+                const buffer = new Uint8Array(array).buffer;
+                
+                // Cerrar base de datos actual y cargar la nueva
+                if (db) db.close();
+                db = new SQL.Database(new Uint8Array(buffer));
+                
+                saveDatabase();
+                loadData();
+                
+                showAlert('Datos restaurados correctamente', 'success');
+                openTab('productos');
+                
+            } catch (error) {
+                console.error('Error restaurando datos:', error);
+                showAlert('Error al restaurar los datos. Verifique el formato.', 'error');
+            }
+        }
+
+        // Mostrar alertas
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 3000);
+        }
+
+        // Cambiar pestañas
+        function openTab(tabName) {
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar el tab seleccionado
+            document.getElementById(tabName).classList.add('active');
+            
+            // Actualizar botones activos
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            event.currentTarget.classList.add('active');
+        }
+
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            initDatabase();
+            
+            // Configurar evento del formulario
+            document.getElementById('productoForm').addEventListener('submit', agregarProducto);
+            
+            // Configurar evento para el textarea de backup (pegar datos)
+            document.getElementById('backupData').addEventListener('paste', function() {
+                setTimeout(() => {
+                    this.value = this.value.trim();
+                }, 100);
+            });
+        });
+
+        // Guardar base de datos antes de cerrar la página
+        window.addEventListener('beforeunload', function() {
+            if (db) {
+                saveDatabase();
+            }
+        });
+    </script>
+</body>
+</html>
